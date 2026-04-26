@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { YouTubeTranscript } from 'youtube-transcript';
+import { fetchTranscript } from 'youtube-transcript';
 
 export async function GET(request: NextRequest) {
   const videoUrl = request.nextUrl.searchParams.get('url');
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const transcript = await YouTubeTranscript.fetchTranscript(videoId);
+    const transcript = await fetchTranscript(videoId);
     
     if (!transcript || transcript.length === 0) {
       return NextResponse.json({ 
