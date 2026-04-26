@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { getDocuments, saveDocuments } from '../../lib/storage';
+import { Document, generateId } from '../../lib/types';
 
 interface Summary {
   id: string;
@@ -44,7 +46,6 @@ export default function YouTubeSummarizer() {
     setError('');
 
     try {
-      // Call the transcript API that uses yt-dlp
       const response = await fetch(`/api/youtube/transcript?url=${encodeURIComponent(youtubeUrl)}`);
       const data = await response.json();
       
@@ -55,7 +56,7 @@ export default function YouTubeSummarizer() {
         setCaptions('');
       }
     } catch (err) {
-      setError('Failed to fetch transcript. Make sure yt-dlp is installed: pip install yt-dlp');
+      setError('Failed to fetch transcript');
     }
 
     setLoading(false);
@@ -75,9 +76,9 @@ export default function YouTubeSummarizer() {
     const newSummary: Summary = {
       id: Date.now().toString(),
       videoUrl: youtubeUrl,
-      videoTitle: `Video: ${extractVideoId(youtubeUrl) || 'Unknown'}`,
+      videoTitle: `YouTube: ${extractVideoId(youtubeUrl) || 'Unknown'}`,
       captions: captions,
-      summary: 'This video covers key concepts that can be transformed into actionable learning material. The content provides foundational knowledge that can be applied to practical scenarios.',
+      summary: 'This video covers key concepts that can be transformed into actionable learning material.',
       keyTakeaways: [
         'Understanding the core principles is essential for application',
         'Practical examples help reinforce learning',
@@ -85,17 +86,17 @@ export default function YouTubeSummarizer() {
         'Real-world applications demonstrate value'
       ],
       mainConcepts: [
-        { title: 'Concept 1', content: 'The fundamental principle that underlies everything else. Important to understand before moving forward.' },
-        { title: 'Concept 2', content: 'Building on the first concept, this adds depth and complexity to the learning.' },
+        { title: 'Concept 1', content: 'The fundamental principle that underlies everything else.' },
+        { title: 'Concept 2', content: 'Building on the first concept, this adds depth and complexity.' },
         { title: 'Concept 3', content: 'Practical application of the previous concepts in real-world scenarios.' }
       ],
       actionItems: [
         'Review the key concepts covered in the video',
         'Practice applying the concepts in a real scenario',
-        'Share learnings with someone else to reinforce understanding',
+        'Share learnings with someone else',
         'Create a plan to implement these ideas within 7 days'
       ],
-      studyNotes: `# Study Notes\n\n## Summary\n${captions.substring(0, 500)}...\n\n## Key Learning Points\n1. Start with fundamentals\n2. Build progressively\n3. Apply practically\n\n## Action Items\n- Complete initial review\n- Practice exercises\n- Schedule follow-up`,
+      studyNotes: `# Study Notes\n\n## Video URL\n${youtubeUrl}\n\n## Key Takeaways\n${['Understanding the core principles', 'Practical examples help', 'Consistent practice', 'Real-world applications'].map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\n## Action Items\n- Complete initial review\n- Practice exercises\n- Schedule follow-up`,
       createdAt: new Date().toISOString()
     };
 
@@ -104,6 +105,23 @@ export default function YouTubeSummarizer() {
     setCaptions('');
     setYoutubeUrl('');
     setLoading(false);
+  };
+
+  const saveToDocuments = (summary: Summary) => {
+    const doc: Document = {
+      id: generateId(),
+      title: summary.videoTitle,
+      category: 'transcript',
+      type: 'transcript',
+      content: `# ${summary.videoTitle}\n\n**URL:** ${summary.videoUrl}\n**Created:** ${new Date(summary.createdAt).toLocaleDateString()}\n\n---\n\n## Summary\n${summary.summary}\n\n## Key Takeaways\n${summary.keyTakeaways.map(t => `- ${t}`).join('\n')}\n\n## Main Concepts\n${summary.mainConcepts.map(c => `### ${c.title}\n${c.content}`).join('\n\n')}\n\n## Action Items\n${summary.actionItems.map(a => `- [ ] ${a}`).join('\n')}\n\n## Study Notes\n${summary.studyNotes}\n\n---\n\n## Full Captions\n${summary.captions}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['youtube', 'summary']
+    };
+
+    const docs = getDocuments();
+    saveDocuments([doc, ...docs]);
+    alert('Saved to Documents!');
   };
 
   return (
@@ -179,6 +197,13 @@ export default function YouTubeSummarizer() {
                 <div className="card-title">📚 Teaching Material Generated</div>
                 <div className="card-subtitle">{showSummary.videoTitle}</div>
               </div>
+              <button 
+                className="btn" 
+                onClick={() => saveToDocuments(showSummary)}
+                style={{ background: 'var(--accent)', color: '#fff' }}
+              >
+                💾 Save to Documents
+              </button>
             </div>
 
             {/* Key Takeaways */}
