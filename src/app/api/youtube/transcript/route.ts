@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
   return new Promise((resolve) => {
     const scriptPath = path.join(process.cwd(), 'scripts', 'get_transcript.py');
     
-    const proc = spawn('python3', [scriptPath, videoUrl], {
+    // Try python3 first, then python (for Windows)
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    
+    const proc = spawn(pythonCmd, [scriptPath, videoUrl], {
       cwd: process.cwd()
     });
 
@@ -26,7 +29,7 @@ export async function GET(request: NextRequest) {
       if (code !== 0) {
         resolve(NextResponse.json({ 
           error: 'Failed to fetch transcript', 
-          details: stderr || 'No subtitles available for this video'
+          details: stderr || 'Make sure yt-dlp is installed: pip install yt-dlp'
         }, { status: 500 }));
       } else {
         resolve(NextResponse.json({ transcript: stdout }));
