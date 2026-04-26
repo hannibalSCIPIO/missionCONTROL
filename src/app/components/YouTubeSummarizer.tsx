@@ -44,22 +44,18 @@ export default function YouTubeSummarizer() {
     setError('');
 
     try {
-      // Try to get captions using YouTube's transcript API
-      const response = await fetch(`/api/youtube/captions?videoId=${videoId}`);
+      // Call the transcript API that uses yt-dlp
+      const response = await fetch(`/api/youtube/transcript?url=${encodeURIComponent(youtubeUrl)}`);
+      const data = await response.json();
       
-      if (response.ok) {
-        const data = await response.json();
-        if (data.captions) {
-          setCaptions(data.captions);
-        } else {
-          // Fallback: simulate captions for demo
-          setCaptions(`[Simulated captions for video ${videoId}]\n\nThis is a placeholder for the actual closed captions that would be fetched from the YouTube video. In production, this would connect to YouTube's transcript API to retrieve the actual caption data.\n\nThe summarization feature would then process these captions to create teaching materials including key takeaways, main concepts, action items, and study notes.`);
-        }
+      if (response.ok && data.transcript) {
+        setCaptions(data.transcript);
       } else {
-        setCaptions(`[Simulated captions for video ${videoId}]\n\nThis is a placeholder for the actual closed captions. In production, this would fetch real captions from YouTube's transcript API.\n\nOnce captions are loaded, click "Generate Summary" to create teaching materials.`);
+        setError(data.details || data.error || 'No captions available for this video');
+        setCaptions('');
       }
     } catch (err) {
-      setCaptions(`[Simulated captions]\n\nCould not fetch actual captions. This is a placeholder.\n\nIn production, this would connect to YouTube's caption API.`);
+      setError('Failed to fetch transcript. Make sure yt-dlp is installed: pip install yt-dlp');
     }
 
     setLoading(false);
