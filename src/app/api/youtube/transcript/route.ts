@@ -12,11 +12,12 @@ export async function GET(request: NextRequest) {
   return new Promise((resolve) => {
     const scriptPath = path.join(process.cwd(), 'scripts', 'get_transcript.py');
     
-    // Try python3 first, then python (for Windows)
-    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    // Use 'py' on Windows (Python launcher), otherwise python3
+    const pythonCmd = process.platform === 'win32' ? 'py' : 'python3';
     
     const proc = spawn(pythonCmd, [scriptPath, videoUrl], {
-      cwd: process.cwd()
+      cwd: process.cwd(),
+      shell: true
     });
 
     let stdout = '';
@@ -29,11 +30,18 @@ export async function GET(request: NextRequest) {
       if (code !== 0) {
         resolve(NextResponse.json({ 
           error: 'Failed to fetch transcript', 
-          details: stderr || 'Make sure yt-dlp is installed: pip install yt-dlp'
+          details: stderr || 'Run: pip install yt-dlp'
         }, { status: 500 }));
       } else {
         resolve(NextResponse.json({ transcript: stdout }));
       }
+    });
+    
+    proc.on('error', (err) => {
+      resolve(NextResponse.json({ 
+        error: 'Python not found', 
+        details: err.message + '. Install Python from python.org'
+      }, { status: 500 }));
     });
   });
 }
